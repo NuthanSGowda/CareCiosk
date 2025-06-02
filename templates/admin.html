@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - CareCiosk</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #2a9d8f;
+      margin-bottom: 10px;
+    }
+
+    .back-link {
+      margin: 10px 0 20px;
+    }
+
+    .back-link a {
+      text-decoration: none;
+      color: #2a9d8f;
+      font-weight: bold;
+      margin: 0 8px;
+    }
+
+    .back-link a:hover {
+      color: #21867a;
+    }
+
+    .flash-message {
+      padding: 12px;
+      margin: 15px auto;
+      width: 90%;
+      max-width: 500px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .flash-message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .flash-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .add-medicine-form {
+      background: white;
+      padding: 25px;
+      margin: 20px auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 500px;
+      text-align: left;
+    }
+
+    .add-medicine-form label {
+      font-weight: 600;
+      display: block;
+      margin-top: 12px;
+    }
+
+    .add-medicine-form input[type="text"],
+    .add-medicine-form input[type="number"],
+    .add-medicine-form input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .add-medicine-form button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #2a9d8f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .add-medicine-form button:hover {
+      background-color: #21867a;
+    }
+
+    h2 {
+      color: #333;
+      margin-top: 40px;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 800px;
+      background-color: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background-color: #e6f2f1;
+      font-weight: bold;
+    }
+
+    .restock-form input[type="number"] {
+      width: 70px;
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .restock-form button,
+    .remove-form button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .restock-form button {
+      background-color: #2a9d8f;
+      color: white;
+    }
+
+    .restock-form button:hover {
+      background-color: #21867a;
+    }
+
+    .remove-form button {
+      background-color: #e63946;
+      color: white;
+    }
+
+    .remove-form button:hover {
+      background-color: #b92c38;
+    }
+  </style>
+  <script>
+    function confirmRemove(medicineName) {
+      return confirm(`Are you sure you want to remove "${medicineName}"?`);
+    }
+  </script>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+
+  <div class="back-link">
+    <a href="{{ url_for('home') }}">← Back to Medicines</a> |
+    <a href="{{ url_for('signup') }}">Create Account</a> |
+    <a href="{{ url_for('logout') }}">Logout</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h2>Add New Medicine</h2>
+  <form class="add-medicine-form" method="POST" action="{{ url_for('add_medicine') }}" enctype="multipart/form-data">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" required>
+
+    <label for="category">Category</label>
+    <input type="text" id="category" name="category" required>
+
+    <label for="price">Price (₹)</label>
+    <input type="number" id="price" name="price" step="0.01" min="0.01" required>
+
+    <label for="stock">Stock</label>
+    <input type="number" id="stock" name="stock" min="0" required>
+
+    <label for="image">Image (optional)</label>
+    <input type="file" id="image" name="image" accept="image/png, image/jpeg">
+
+    <button type="submit">Add Medicine</button>
+  </form>
+
+  <h2>Manage Medicines</h2>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Current Stock</th>
+      <th>Restock</th>
+      <th>Remove</th>
+    </tr>
+    {% for medicine in medicines %}
+    <tr>
+      <td>{{ medicine.name }}</td>
+      <td>{{ medicine.stock }}</td>
+      <td>
+        <form class="restock-form" method="POST" action="{{ url_for('admin') }}">
+          <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+          <input type="number" name="restock_quantity" min="1" placeholder="Qty">
+          <button type="submit">Restock</button>
+        </form>
+      </td>
+      <td>
+        <form class="remove-form" method="POST" action="{{ url_for('remove_medicine', medicine_id=medicine.id) }}" onsubmit="return confirmRemove('{{ medicine.name }}')">
+          <button type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    {% if not medicines %}
+    <tr>
+      <td colspan="4">No medicines available.</td>
+    </tr>
+    {% endif %}
+  </table>
+</body>
+</html>

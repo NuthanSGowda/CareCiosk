@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cart - CareCiosk</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      color: #2a9d8f;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .container, table {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 1000px;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .back-link a {
+      text-decoration: none;
+      color: #2a9d8f;
+      font-weight: bold;
+      margin: 0 10px;
+    }
+
+    .back-link a:hover {
+      color: #21867a;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+
+    th {
+      background-color: #e9f5f3;
+    }
+
+    .medicine-image {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .remove-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .remove-button:hover {
+      background-color: #c0392b;
+    }
+
+    .total {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: right;
+      margin-top: 20px;
+    }
+
+    .purchase-button {
+      display: block;
+      margin: 30px auto 0;
+      padding: 12px 30px;
+      font-size: 1rem;
+      background-color: #2a9d8f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .purchase-button:hover {
+      background-color: #21867a;
+    }
+
+    .purchase-button:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .flash-message {
+      margin: 15px auto;
+      padding: 15px;
+      width: 90%;
+      max-width: 1000px;
+      border-radius: 8px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .flash-message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .flash-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    @media (max-width: 768px) {
+      th, td {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Your Cart</h1>
+    <div class="back-link">
+      <a href="{{ url_for('home') }}">Back to Medicines</a> |
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Quantity</th>
+          <th>Subtotal</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart_items %}
+        <tr>
+          <td>
+            {% if item.image_path %}
+              <img src="{{ url_for('static', filename='images/' + item.image_path) }}" alt="{{ item.name }}" class="medicine-image">
+            {% else %}
+              <span>No image</span>
+            {% endif %}
+          </td>
+          <td>{{ item.name }}</td>
+          <td>₹{{ item.price }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>₹{{ item.subtotal }}</td>
+          <td>
+            <form action="{{ url_for('remove_from_cart', medicine_id=item.id) }}" method="POST">
+              <button type="submit" class="remove-button">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not cart_items %}
+        <tr>
+          <td colspan="6">Your cart is empty.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="total">
+      Total: ₹{{ total }}
+    </div>
+
+    {% if cart_items %}
+    <form id="purchase-form" action="{{ url_for('purchase') }}" method="POST">
+      <button type="submit" class="purchase-button">Purchase</button>
+    </form>
+    {% else %}
+    <button class="purchase-button" disabled>Purchase</button>
+    {% endif %}
+  </div>
+
+  <script>
+    const form = document.getElementById('purchase-form');
+    if (form) {
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        fetch(this.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        })
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            alert('Purchase made successfully!');
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          alert('Error: Could not process purchase.');
+          console.error(error);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
