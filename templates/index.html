@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CareCiosk</title>
+    <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      color: #2a9d8f;
+      margin-bottom: 10px;
+    }
+
+    .cart-link, .search-container, table {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 1000px;
+    }
+
+    .cart-link a {
+      text-decoration: none;
+      color: #2a9d8f;
+      font-weight: bold;
+      margin: 0 10px;
+    }
+
+    .cart-link a:hover {
+      color: #21867a;
+    }
+
+    .search-container form {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input[type="text"], select {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #2a9d8f;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #21867a;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+
+    th {
+      background-color: #e9f5f3;
+    }
+
+    .medicine-image {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+
+    .flash-message {
+      margin: 10px auto;
+      padding: 15px;
+      width: 90%;
+      max-width: 1000px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .flash-message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .flash-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .cart-form input[type="number"] {
+      width: 60px;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    @media (max-width: 768px) {
+      .search-container form {
+        flex-direction: column;
+      }
+
+      th, td {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+    <h1>Welcome to CareCiosk</h1>
+    <div class="cart-link">
+        {% if current_user.is_authenticated %}
+            <h2>Welcome, {{ current_user.username }}!</h2> 
+            <a href="{{ url_for('view_cart') }}">View Cart</a> | 
+            <a href="{{ url_for('orders') }}">Order History</a> | 
+            {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('admin') }}">Admin Panel</a> | 
+                <a href="{{ url_for('signup') }}">Create Account</a> | 
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a> | 
+            <a href="{{ url_for('signup') }}">Sign Up</a>
+        {% endif %}
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div class="search-container">
+        <form method="GET" action="/">
+            <input type="text" name="query" placeholder="Search medicines..." value="{{ query or '' }}">
+            <select name="search_type">
+                <option value="name" {% if search_type == 'name' %}selected{% endif %}>Name</option>
+                <option value="category" {% if search_type == 'category' %}selected{% endif %}>Category</option>
+            </select>
+            <button type="submit">Search</button>
+        </form>
+    </div>
+    <table>
+        <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price per Unit</th>
+            <th>Stock</th>
+            <th>Add to Cart</th>
+        </tr>
+        {% for medicine in medicines %}
+        <tr>
+            <td>
+                {% if medicine.image_path %}
+                <img src="{{ url_for('static', filename='images/' + medicine.image_path) }}" alt="{{ medicine.name }}" class="medicine-image">
+                {% else %}
+                <span>No image</span>
+                {% endif %}
+            </td>
+            <td>{{ medicine.name }}</td>
+            <td>{{ medicine.category }}</td>
+            <td>₹{{ medicine.price }}</td>
+            <td>{{ medicine.stock }}</td>
+            <td>
+                {% if current_user.is_authenticated %}
+                <form class="cart-form" method="POST" action="{{ url_for('add_to_cart', medicine_id=medicine.id) }}">
+                    <input type="number" name="quantity" value="1" min="1" max="{{ medicine.stock }}">
+                    <button type="submit">Add</button>
+                </form>
+                {% else %}
+                <span>Please <a href="{{ url_for('login') }}">login</a> to add to cart</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        {% if not medicines %}
+        <tr>
+            <td colspan="6">No medicines found.</td>
+        </tr>
+        {% endif %}
+    </table>
+</body>
+</html>
